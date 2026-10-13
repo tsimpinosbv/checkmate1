@@ -2,22 +2,36 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Τα email που έχουν πρόσβαση στην εφαρμογή (μικρά γράμματα).
-    // Πρόσθεσε ή αφαίρεσε άτομα εδώ και πάτα "Publish" στην κονσόλα Firebase.
-    function isTeam() {
-      return request.auth != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email.lower() in [
-          'to-email-sou@gmail.com',
-          'email-voithou@gmail.com'
-        ];
+    // Μόνιμοι διαχειριστές (μικρά γράμματα). Δεν μπορούν να κλειδωθούν έξω.
+    // Άλλους διαχειριστές και μέλη τους ορίζεις μέσα από την εφαρμογή (κουμπί «Χρήστες»).
+    function owners() { return ['to-email-sou@gmail.com']; }
+
+    function signedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function myEmail() { return request.auth.token.email.lower(); }
+    function profilePath() { return /databases/$(database)/documents/users/$(myEmail()); }
+    function role() { return signedIn() && exists(profilePath()) ? get(profilePath()).data.role : 'none'; }
+    function isAdmin() { return signedIn() && (myEmail() in owners() || role() == 'admin'); }
+    function isMember() { return isAdmin() || role() == 'member'; }
+
+    // Χρήστες: users/{email} με ρόλο pending | member | admin | blocked
+    match /users/{email} {
+      allow read: if isAdmin() || (signedIn() && email == myEmail());
+      // Ο καθένας μπορεί να εγγραφεί μόνος του, αλλά μόνο ως "σε αναμονή".
+      allow create: if isAdmin() || (signedIn() && email == myEmail() && request.resource.data.role == 'pending');
+      // Ο χρήστης αλλάζει μόνο το όνομά του, όχι τον ρόλο του.
+      allow update: if isAdmin() || (signedIn() && email == myEmail() && request.resource.data.role == resource.data.role);
+      allow delete: if isAdmin();
     }
 
+    // Αγώνες: το μέλος βλέπει/αλλάζει μόνο τους δικούς του, ο διαχειριστής όλους.
     match /matches/{matchId} {
-      allow read, write: if isTeam();
+      allow read: if isAdmin() || (isMember() && resource.data.ownerEmail == myEmail());
+      allow create: if isAdmin() || (isMember() && request.resource.data.ownerEmail == myEmail());
+      allow update: if isAdmin() || (isMember() && resource.data.ownerEmail == myEmail()
+                                     && request.resource.data.ownerEmail == myEmail());
+      allow delete: if isAdmin() || (isMember() && resource.data.ownerEmail == myEmail());
     }
 
-    // Όλα τα υπόλοιπα κλειστά.
     match /{document=**} {
       allow read, write: if false;
     }
