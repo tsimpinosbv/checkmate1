@@ -21,7 +21,14 @@
   του αρχείου firestore.rules (μόνο τα email που θα ορίσεις εκεί).
 */
 window.CHECKMATE_CONFIG = {
-  firebase: null,
+  firebase: {
+    apiKey: "AIzaSyAH1gHQNNCsZyQXK9pnjL6Xx0VlGCW6YWY",
+    authDomain: "checkmate-33472.firebaseapp.com",
+    projectId: "checkmate-33472",
+    storageBucket: "checkmate-33472.firebasestorage.app",
+    messagingSenderId: "292230683287",
+    appId: "1:292230683287:web:94da34e822ba7e194367d2"
+  },
 
   // Προαιρετικά: προεπιλεγμένες αμοιβές ανά θέση (σε €), π.χ. { op: 40, as: 25 }
   defaultFees: { op: null, as: null }
