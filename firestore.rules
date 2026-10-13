@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Τα email που έχουν πρόσβαση στην εφαρμογή (μικρά γράμματα).
+    // Πρόσθεσε ή αφαίρεσε άτομα εδώ και πάτα "Publish" στην κονσόλα Firebase.
+    function isTeam() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in [
+          'to-email-sou@gmail.com',
+          'email-voithou@gmail.com'
+        ];
+    }
+
+    match /matches/{matchId} {
+      allow read, write: if isTeam();
+    }
+
+    // Όλα τα υπόλοιπα κλειστά.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
