@@ -1,6 +1,6 @@
 // Check Mate service worker: η εφαρμογή ανοίγει και χωρίς σήμα στο γήπεδο.
 // Άλλαξε τον αριθμό έκδοσης όταν ανεβάζεις νέα αρχεία, για να ανανεωθούν τα κινητά.
-const CACHE = "checkmate-v3";
+const CACHE = "checkmate-v4";
 const SHELL = ["./", "./index.html", "./app.html", "./config.js", "./manifest.webmanifest",
   "./icons/logo.svg", "./icons/favicon.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/apple-touch-icon.png"];
 

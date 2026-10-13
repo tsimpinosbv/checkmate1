@@ -155,6 +155,11 @@ dialog::backdrop{background:rgba(8,12,22,.55)}
     </div>
   </header>
 
+  <div class="banner" id="migrateBanner" hidden>
+    <b>Βρέθηκε <span id="migrateCount"></span> σε αυτή τη συσκευή</b> από την τοπική λειτουργία.
+    <button class="btn primary" id="btnMigrate" type="button" style="margin-left:6px;padding:5px 12px">Μεταφορά στην κοινή βάση</button>
+  </div>
+
   <div class="banner" id="localBanner" hidden>
     <b>Τοπική λειτουργία.</b> Οι αγώνες αποθηκεύονται μόνο σε αυτή τη συσκευή. Για κοινή χρήση με τον βοηθό, ρύθμισε το Firebase (οδηγίες στο README).
     <button class="linkbtn" id="btnBackup" type="button">Αντίγραφο ασφαλείας</button> ·
@@ -502,6 +507,26 @@ $("iRestore").onchange = async e => {
 };
 
 /* ================= BOOT ================= */
+/* Move matches saved in local mode on this device into the shared database */
+const LOCAL_KEY="checkmate.matches";
+function localRows(){ try{ return JSON.parse(localStorage.getItem(LOCAL_KEY)||"[]"); }catch{ return []; } }
+function offerMigration(){
+  const a = localRows(); const b = $("migrateBanner");
+  if(!a.length){ b.hidden=true; return; }
+  $("migrateCount").textContent = a.length===1 ? "1 αγώνας" : `${a.length} αγώνες`;
+  b.hidden=false;
+}
+$("btnMigrate").onclick = async () => {
+  const a = localRows(); if(!a.length) return;
+  $("btnMigrate").disabled = true;
+  try{
+    for(const r of a){ const {id:_x, ...d} = r; await store.add({...d, createdAt:d.createdAt||Date.now()}); }
+    try{ localStorage.setItem(LOCAL_KEY+".moved-"+today(), JSON.stringify(a)); localStorage.removeItem(LOCAL_KEY); }catch{}
+    $("migrateBanner").hidden=true; toast(a.length===1?"Ο αγώνας μεταφέρθηκε":"Οι αγώνες μεταφέρθηκαν");
+  }catch(err){ toast(errText(err)); }
+  finally{ $("btnMigrate").disabled=false; }
+};
+
 function showApp(on){ $("main").hidden=!on; $("gate").hidden=on; ["btnCsv","btnReport","btnAdd"].forEach(id=>$(id).hidden=!on); }
 render();
 if(CFG.firebase){
@@ -515,6 +540,7 @@ if(CFG.firebase){
         $("gateMsg").textContent="Συνδέσου με τον λογαριασμό Google που έχει δηλωθεί στην ομάδα."; return; }
       $("userEmail").textContent=user.email; $("userChip").hidden=false; showApp(true);
       loaded=false; render();
+      offerMigration();
       store.subscribe(setRows, err => {
         showApp(false); $("btnSignIn").hidden=true;
         $("gateMsg").innerHTML = /permission/i.test(err.code||"")
